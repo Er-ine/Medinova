@@ -27,15 +27,33 @@ function PatientDashboard() {
   const [userName, setUserName] = useState("Aarya Sinha");
   const [userEmail, setUserEmail] = useState("aarya.sinha@example.com");
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState({
+    phone: "+91 98765 43210",
+    dob: "14 Mar 1995",
+    gender: "Female",
+    bloodGroup: "O+",
+    city: "Mumbai",
+    emergencyContact: "+91 98123 45678",
+  });
+
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedEmail = localStorage.getItem("userEmail");
     if (storedName) setUserName(storedName);
     if (storedEmail) setUserEmail(storedEmail);
-    
+
     const storedAppts = JSON.parse(localStorage.getItem("bookedAppointments") || "[]");
     setList(storedAppts);
+
+    const storedProfile = localStorage.getItem("patientProfile");
+    if (storedProfile) setProfileData(JSON.parse(storedProfile));
   }, []);
+
+  const saveProfile = () => {
+    localStorage.setItem("patientProfile", JSON.stringify(profileData));
+    setIsEditing(false);
+  };
 
   const initials = userName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
 
@@ -50,7 +68,11 @@ function PatientDashboard() {
   };
 
   const cancel = (id: string) => {
-    setList((arr) => arr.map((a) => (a.id === id ? { ...a, status: "Cancelled" } : a)));
+    setList((arr) => {
+      const updated = arr.map((a) => (a.id === id ? { ...a, status: "Cancelled" } : a));
+      localStorage.setItem("bookedAppointments", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   return (
@@ -122,16 +144,36 @@ function PatientDashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 22 }}>
             <ProfileCard name={userName} role="Patient · Member since 2024" email={userEmail} />
             <div className="dash-panel" style={{ margin: 0 }}>
-              <div className="head"><h3>Personal Information</h3></div>
+              <div className="head">
+                <h3>Personal Information</h3>
+                {!isEditing ? (
+                  <button className="med-btn med-btn-outline" onClick={() => setIsEditing(true)}>Edit Profile</button>
+                ) : (
+                  <button className="med-btn med-btn-primary" onClick={saveProfile}>Save Changes</button>
+                )}
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <ProfileField label="Full Name" value={userName} />
                 <ProfileField label="Email" value={userEmail} />
-                <ProfileField label="Phone" value="+91 98765 43210" />
-                <ProfileField label="Date of Birth" value="14 Mar 1995" />
-                <ProfileField label="Gender" value="Female" />
-                <ProfileField label="Blood Group" value="O+" />
-                <ProfileField label="City" value="Mumbai" />
-                <ProfileField label="Emergency Contact" value="+91 98123 45678" />
+                {!isEditing ? (
+                  <>
+                    <ProfileField label="Phone" value={profileData.phone} />
+                    <ProfileField label="Date of Birth" value={profileData.dob} />
+                    <ProfileField label="Gender" value={profileData.gender} />
+                    <ProfileField label="Blood Group" value={profileData.bloodGroup} />
+                    <ProfileField label="City" value={profileData.city} />
+                    <ProfileField label="Emergency Contact" value={profileData.emergencyContact} />
+                  </>
+                ) : (
+                  <>
+                    <EditableField label="Phone" value={profileData.phone} onChange={(v) => setProfileData({ ...profileData, phone: v })} />
+                    <EditableField label="Date of Birth" value={profileData.dob} onChange={(v) => setProfileData({ ...profileData, dob: v })} />
+                    <EditableField label="Gender" value={profileData.gender} onChange={(v) => setProfileData({ ...profileData, gender: v })} />
+                    <EditableField label="Blood Group" value={profileData.bloodGroup} onChange={(v) => setProfileData({ ...profileData, bloodGroup: v })} />
+                    <EditableField label="City" value={profileData.city} onChange={(v) => setProfileData({ ...profileData, city: v })} />
+                    <EditableField label="Emergency Contact" value={profileData.emergencyContact} onChange={(v) => setProfileData({ ...profileData, emergencyContact: v })} />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -146,6 +188,15 @@ function ProfileField({ label, value }: { label: string; value: string }) {
     <div style={{ background: "var(--med-bg)", padding: 14, borderRadius: 12 }}>
       <div style={{ fontSize: 12, color: "var(--med-muted)" }}>{label}</div>
       <div style={{ fontSize: 15, fontWeight: 600, color: "var(--med-ink)", marginTop: 2 }}>{value}</div>
+    </div>
+  );
+}
+
+function EditableField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ background: "var(--med-bg)", padding: 14, borderRadius: 12 }}>
+      <div style={{ fontSize: 12, color: "var(--med-muted)", marginBottom: 4 }}>{label}</div>
+      <input className="med-input" value={value} onChange={(e) => onChange(e.target.value)} style={{ padding: "6px 10px", fontSize: 14, width: "100%" }} />
     </div>
   );
 }
