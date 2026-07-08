@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FiMail, FiLock, FiArrowRight, FiCalendar, FiVideo, FiShield } from "react-icons/fi";
 import { FaHeartbeat } from "react-icons/fa";
+import { API_BASE_URL } from "../lib/api";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Login — MediCare" }, { name: "description", content: "Sign in to manage your appointments and health records." }] }),
@@ -21,7 +22,7 @@ function LoginPage() {
     setError("");
     
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -31,7 +32,9 @@ function LoginPage() {
       if (!res.ok) throw new Error(data.message || "Login failed");
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("userId", data.user.id);
       localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userEmail", data.user.email);
       localStorage.setItem("userRole", data.user.role);
       
       if (data.user.role === "admin") {
