@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   FiCalendar, FiSearch, FiShield, FiClock,
   FiArrowRight, FiStar, FiUsers, FiHeart,
@@ -24,6 +24,17 @@ export const Route = createFileRoute("/")({
 const SPEC_ICONS = [FaHeartbeat, FaAllergies, FaBone, FaBaby, FaBrain, FaStethoscope];
 
 function Index() {
+  const navigate = useNavigate();
+
+  const goFindDoctor = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate({ to: "/doctors" });
+    } else {
+      navigate({ to: "/login" });
+    }
+  };
+
   return (
     <SiteShell>
       <section className="hero">
@@ -39,9 +50,9 @@ function Index() {
               appointments instantly — all from one beautifully simple platform.
             </p>
             <div className="hero-actions">
-              <Link to="/doctors" className="med-btn med-btn-primary med-btn-lg">
+              <button onClick={goFindDoctor} className="med-btn med-btn-primary med-btn-lg">
                 Find a Doctor <FiArrowRight />
-              </Link>
+              </button>
               <Link to="/register" className="med-btn med-btn-outline med-btn-lg">
                 Create Account
               </Link>
