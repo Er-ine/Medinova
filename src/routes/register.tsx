@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { FiUser, FiMail, FiPhone, FiLock, FiArrowRight, FiCalendar, FiVideo, FiShield } from "react-icons/fi";
 import { FaHeartbeat, FaUserMd } from "react-icons/fa";
+import { API_BASE_URL } from "../lib/api";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Create Account — MediCare" }, { name: "description", content: "Create your free MediCare account to book doctors and manage care." }] }),
@@ -37,7 +38,7 @@ function RegisterPage() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,8 +55,10 @@ function RegisterPage() {
 
       // Save token and user
       localStorage.setItem("token", data.token);
+      localStorage.setItem("userId", data.user.id);
       localStorage.setItem("userName", data.user.name);
       localStorage.setItem("userEmail", data.user.email);
+      localStorage.setItem("userRole", data.user.role);
 
       // Always redirect to patient dashboard
       navigate({ to: "/patient-dashboard" });
