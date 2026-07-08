@@ -1,58 +1,67 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
-import { FiLogOut, FiPlus, FiUser, FiMail, FiPhone, FiLock } from "react-icons/fi";
-import { FaShieldAlt } from "react-icons/fa";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { FiUser, FiMail, FiPhone, FiLock, FiArrowRight, FiCalendar, FiVideo, FiShield } from "react-icons/fi";
+import { FaHeartbeat, FaUserMd } from "react-icons/fa";
+import { API_BASE_URL } from "../lib/api";
 
-export const Route = createFileRoute("/admin-dashboard")({
-  head: () => ({ meta: [{ title: "Admin Portal — MediCare" }] }),
-  component: AdminDashboard,
+export const Route = createFileRoute("/register")({
+  head: () => ({ meta: [{ title: "Create Account — MediCare" }, { name: "description", content: "Create your free MediCare account to book doctors and manage care." }] }),
+  component: RegisterPage,
 });
 
-function AdminDashboard() {
+function scorePassword(p: string) {
+  let s = 0;
+  if (p.length >= 6) s++;
+  if (p.length >= 10) s++;
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) s++;
+  if (/\d/.test(p) && /[^A-Za-z0-9]/.test(p)) s++;
+  return s;
+}
+const LABELS = ["Too weak", "Weak", "Okay", "Strong", "Excellent"];
+
+function RegisterPage() {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState("Admin");
-  
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
-  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
+  const [agree, setAgree] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const role = localStorage.getItem("userRole");
-    if (role !== "admin") {
-      navigate({ to: "/login" });
-    }
-    const name = localStorage.getItem("userName");
-    if (name) setUserName(name);
-  }, [navigate]);
+  const strength = useMemo(() => scorePassword(form.password), [form.password]);
 
-  const logout = () => {
-    localStorage.clear();
-    navigate({ to: "/" });
-  };
+  const upd = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const submitDoctor = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.password !== form.confirm || !agree) return;
+
     setLoading(true);
     setError("");
-    setSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/admin/create-doctor", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(form)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+          // role is forced to 'patient' by backend
+        })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to create doctor");
+      if (!res.ok) throw new Error(data.message || "Registration failed");
 
-      setSuccess(`Doctor ${form.name} created successfully!`);
-      setForm({ name: "", email: "", phone: "", password: "" });
+      // Save token and user
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userEmail", data.user.email);
+      localStorage.setItem("userRole", data.user.role);
+
+      // Always redirect to patient dashboard
+      navigate({ to: "/patient-dashboard" });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -61,95 +70,89 @@ function AdminDashboard() {
   };
 
   return (
-    <div className="dash-layout">
-      {/* Sidebar */}
-      <div className="dash-sidebar">
-        <div className="dash-logo" style={{ color: "var(--med-blue-600)" }}>
-          <FaShieldAlt /> <span>Admin Portal</span>
+    <div className="auth-shell">
+      <div className="auth-left">
+        <div className="auth-brand">
+          <span className="mark"><FaHeartbeat /></span>
+          <span>MediCare</span>
         </div>
-
-        <div className="dash-nav">
-          <button className="nav-item is-active">
-            <FiPlus /> <span>Add Doctor</span>
-          </button>
+        <div className="auth-hero">
+          <h1>Create your free MediCare account.</h1>
+          <p>Join 50,000+ patients and doctors using MediCare to manage healthcare seamlessly.</p>
         </div>
-
-        <div className="dash-bottom">
-          <button className="nav-item" onClick={logout} style={{ color: "var(--med-danger)" }}>
-            <FiLogOut /> <span>Log Out</span>
-          </button>
+        <div className="auth-illus">
+          <div className="tile"><div className="ic"><FiCalendar /></div><div><b>500+ doctors</b><span>Across 25+ specialities</span></div></div>
+          <div className="tile"><div className="ic"><FiShield /></div><div><b>Encrypted records</b><span>Your data is protected</span></div></div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="dash-main">
-        <div className="dash-header">
-          <div>
-            <h1 className="dash-title">Add New Doctor</h1>
-            <p className="dash-subtitle">Create accounts for medical professionals</p>
-          </div>
-          <div className="dash-user">
-            <div className="av" style={{ background: "var(--med-blue-600)", color: "#fff" }}>AD</div>
-            <div>
-              <b>{userName}</b>
-              <span>System Administrator</span>
-            </div>
-          </div>
-        </div>
+      <div className="auth-right">
+        <div className="auth-card">
+          <h2>Create your account</h2>
+          <p className="sub">Takes less than a minute. No credit card required.</p>
 
-        <div className="dash-panel" style={{ maxWidth: 600, margin: "0 auto", marginTop: 40 }}>
-          <div className="head">
-            <h3>Doctor Credentials</h3>
-          </div>
-          
-          {success && (
-            <div style={{ padding: 12, background: "#dcfce7", color: "#166534", borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
-              {success}
-            </div>
-          )}
-          {error && (
-            <div style={{ padding: 12, background: "#fee2e2", color: "#991b1b", borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={submitDoctor} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <form className="auth-form" onSubmit={submit} style={{ marginTop: 22 }}>
             <div className="med-field">
-              <label>Doctor's Full Name</label>
+              <label>Full name</label>
               <div className="med-input-wrap">
                 <FiUser />
-                <input required className="med-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Dr. Sarah Johnson" />
+                <input className="med-input" required value={form.name} onChange={(e) => upd("name", e.target.value)} placeholder="Jane Doe" />
               </div>
             </div>
-
             <div className="med-field">
-              <label>Email Address</label>
+              <label>Email</label>
               <div className="med-input-wrap">
                 <FiMail />
-                <input required type="email" className="med-input" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="doctor@medicare.app" />
+                <input className="med-input" type="email" required value={form.email} onChange={(e) => upd("email", e.target.value)} placeholder="you@example.com" />
               </div>
             </div>
-
             <div className="med-field">
-              <label>Phone Number</label>
+              <label>Phone number</label>
               <div className="med-input-wrap">
                 <FiPhone />
-                <input required className="med-input" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+91 98765 43210" />
+                <input className="med-input" required value={form.phone} onChange={(e) => upd("phone", e.target.value)} placeholder="+91 98765 43210" />
               </div>
             </div>
-
             <div className="med-field">
-              <label>Temporary Password</label>
+              <label>Password</label>
               <div className="med-input-wrap">
                 <FiLock />
-                <input required type="password" className="med-input" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="At least 8 characters" />
+                <input className="med-input" type="password" required value={form.password} onChange={(e) => upd("password", e.target.value)} placeholder="At least 8 characters" />
+              </div>
+              <div className="pwd-strength">
+                <div className="pwd-bars">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className={`bar ${strength >= i ? `is-on-${Math.min(strength, 4)}` : ""}`} />
+                  ))}
+                </div>
+                <span className="label">{LABELS[strength]}</span>
               </div>
             </div>
+            <div className="med-field">
+              <label>Confirm password</label>
+              <div className="med-input-wrap">
+                <FiLock />
+                <input className="med-input" type="password" required value={form.confirm} onChange={(e) => upd("confirm", e.target.value)} placeholder="Repeat password" />
+              </div>
+              {form.confirm && form.confirm !== form.password && (
+                <span className="label" style={{ color: "var(--med-danger)", fontSize: 12 }}>Passwords don't match</span>
+              )}
+            </div>
 
-            <button type="submit" disabled={loading} className="med-btn med-btn-primary med-btn-lg" style={{ marginTop: 8 }}>
-              {loading ? "Creating Account..." : "Create Doctor Account"}
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "var(--med-muted)" }}>
+              <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: 3 }} />
+              <span>I agree to MediCare's <a href="#" style={{ color: "var(--med-blue-600)", fontWeight: 600 }}>Terms of Service</a> and <a href="#" style={{ color: "var(--med-blue-600)", fontWeight: 600 }}>Privacy Policy</a>.</span>
+            </label>
+
+            <button type="submit" disabled={!agree || loading} className="med-btn med-btn-primary med-btn-block med-btn-lg" style={{ opacity: (agree && !loading) ? 1 : 0.6 }}>
+              {loading ? "Creating Account..." : <><FiArrowRight /> Create Account</>}
             </button>
+            {error && <div style={{ color: "var(--med-danger)", fontSize: 13, marginTop: 12, textAlign: "center" }}>{error}</div>}
           </form>
+
+          <div className="auth-foot">
+            Already have an account? <Link to="/login">Sign in</Link>
+          </div>
         </div>
       </div>
     </div>
