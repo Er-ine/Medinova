@@ -45,8 +45,10 @@ function DoctorDashboard() {
     if (storedName) setUserName(`Dr. ${storedName}`);
     if (storedEmail) setUserEmail(storedEmail);
     
-    const storedDocAppts = JSON.parse(localStorage.getItem("bookedPatients") || "[]");
-    setSchedule(storedDocAppts);
+    const allDocAppts = JSON.parse(localStorage.getItem("bookedPatients") || "[]");
+    const myName = storedName ? `Dr. ${storedName}` : "";
+    const myAppts = allDocAppts.filter((a: any) => a.doctorName === myName);
+    setSchedule(myAppts);
 
     const storedProfile = localStorage.getItem("doctorProfile");
     if (storedProfile) setProfileData(JSON.parse(storedProfile));
