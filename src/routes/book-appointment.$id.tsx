@@ -79,6 +79,7 @@ function BookingPage() {
 
     const newDocAppt = {
       id: "p" + Date.now(),
+      doctorName: doctor.name,
       name: name,
       age: 30, // Mock age
       time: slot,
